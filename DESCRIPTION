@@ -2,7 +2,7 @@ Package: flowMap
 Title: A probabilistic algorithm for matching and comparing multiple
         flow cytometry samples
 Description: This package provides an algorithm to compare and match cell populations across multiple flow cytometry samples. The method is based on the Friedman-Rafsky test, a nonparametric multivariate statistical test, where two cell distributions match if they occupy a similar feature space. The algorithm allows the users to specify a reference sample for comparison or to construct a reference sample from the available data. The output of the algorithm is a set of text files where the cell population labels are replaced by a metaset of population labels, generated from the matching process.
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: c(person("Chiaowen Hsiao",role=c("aut","cre")
     ,email="chsiao@umiacs.umd.edu"),
     person("Yu Qian",role="aut",email="mqian@jcvi.org"))
