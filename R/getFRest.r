@@ -1,40 +1,67 @@
-#' F-R statistic estimates across two samples 
+#' FR tests to compare two flow cytometry samples 
 #'
-#' Compute an estimate of F-R statistics based on random draws of each population pair comparison. The 
-#' computation is optimized by incorporating the RParallel package. Users can specify the number of processing
-#' cores to be used during computation.
-#'  
-#' @param XX1 sample 1 txt file (cell populations are indexed by id)
-#' @param XX2 sample 2 txt file (cell populations are indexed by id)
-#' @param iiTest an matrix of cell population pairs to be included in the cross-sample comparison.
-#' @param draws number of random draws 
-#' @param sampleMethod methods of downsampling. The current default is equalSize, which samples 
-#'		an equal number of events from each group.      
-#' @param sampleSize for the equalSize sampling method, specify the number of events to be sample from each group
-#' @param estStat statistic that used to estimate population F-R statistic (median is the default)
+#' Estimate FR statistics comparing cell populations across two flow cytometry samples. The estimates are 
+#' generated from \code{\link{getFRmat}} and are dependent on the number of random draws as well as the size
+#' of each random sample. For every cell population pair comparison, we take the median of the FR statistics
+#' across all random samples as the estimated similarity. Parallel computing is used to minimize the runtime
+#' of the algorithm (\pkg{doParallel}). Users can specify the number of cores to be used depending on the 
+#' available computing power. Default uses all available processing cores in the system. 
 #' 
-#' @return wmat estimated F-R statistics across random draws (XX1 populations by XX2 populations)
-#' @return runsmat estimated number of within-group subtrees across randomd draws (XX1 populations by XX2 populations)
-#' @return mumat estimated nubmer of expected runs across random draws (XX1 populations by XX2 populations)
-#' @return sigma2mat estimated variance of runs across randomd draws (XX1 populations by XX2 populations)
+#' @param XX1 a flow cytometry sample of cell populations, organized in a matrix or a data.frame of events (rows)
+#'            by features (columns) where cell populaiton memberships are indexed in the last column by 
+#'            a variable named id.
+#' @param XX2 a flow cytometry sample of cell populations, organized in a matrix or a data.frame of events (rows)
+#'            by features (columns) where cell populaiton memberships are indexed in the last column by 
+#'            a variable named id.
+#' @param ndraws number of random samples. Runtime is linear in the number of random samples. (default: 200) 
+#' @param sampleMethod downsampling method, options include \emph{equalSize} or \emph{proportional}. Both methods 
+#'                    sample events without replacement from the combined events in a single cell population pair 
+#'                    comparison. Using \emph{equalSize}, each sample includes an equal number of events from the
+#'                    two cell populations being compared. Using \emph{proportional}, the ratio of the event 
+#'                    membership is same as the ratio of event membershiop prior to sampling. 
+#'                    (default: \emph{proportional})
+#' @param sampleSize specifies \emph{S},the number of events to be included in each sample. For \emph{equalSize} sampling 
+#'                  , S/2 is sampled from each population. For \emph{proportional} sampling, the ratio of event membership
+#'                  is the same as the ratio of event membership prior to sampling. (default: 200)
+#' @param estStat statistic that used to estimate FR statistic of each population pair comparison across random samples.
+#'                  (default: median)
+#' 
+#' @return wmat a matrix of estimated FR statistics for each XX1 by XX2 population comparisons.
+#' @return runsmat a matrix of estimated runs for each XX1 by XX2 population comparisons.
+#' @return mumat a matrix of estimated expected number of runs for each XX1 by XX2 population comparisons.
+#' @return sigma2mat a matrix of estimated variance of runs for each XX1 by XX2 population comparisons.
+#' @return pNormat a matrix of one-sided p-values of the estimated FR statistic for each XX1 by XX2 population
+#'                comparisons under the asymptotic normality assumption of the FR statistic.
 #'
 #' @examples
 #' ## see vignettes
 #'
 #' @name getFRest
 #' 
+#' @author Chiaowen Joyce Hsiao \email{joyce.hsiao1@@gmail.com}
+#' 
 #' @export
-getFRest <- function(XX1,XX2,iiTest,draws,sampleMethod,sampleSize,estStat) {
+getFRest <- function(XX1,XX2,sampleMethod="proportional",
+		sampleSize=200,estStat="median",ndraws=200,ncores=NULL) {
 
-    ncores <- detectCores()
-    registerDoParallel(cores=ncores)
-
-    message("computing FR statistics between sample populations... \n")
-    mat <- foreach(i=1:draws) %dopar% flowMap::getFRmat(i,XX1,XX2,iiTest,sampleMethod,sampleSize)
+	if (is.null(ncores)) {
+	  ncores <- detectCores()
+	  registerDoParallel(cores=ncores)
+	  message(paste("computing on",ncores,"cores"))
+	} else {
+	  registerDoParallel(cores=ncores)
+	  message(paste("computing on",ncores,"cores"))
+	}
+	
+    message("computing FR statistics between sample ... \n")
+	mat <- foreach(i=1:ndraws) %dopar% getFRmat(XX1,XX2,sampleMethod=sampleMethod,
+        sampleSize=sampleSize,i)
     closeSockets()
 
     npop1 <- length(unique(XX1$id))
     npop2 <- length(unique(XX2$id))
+
+
     wmat <- lapply(mat,"[[",1) 
     wmat <- statCrossLists(wmat,estStat)
     colnames(wmat)=as.numeric(as.character(sort(unique(XX2$id))))
@@ -55,10 +82,10 @@ getFRest <- function(XX1,XX2,iiTest,draws,sampleMethod,sampleSize,estStat) {
     new("FRstats",
     	XX1=XX1,
     	XX2=XX2,
-    	sampleMethod=sampleMethod,
-    	sampleSize=sampleSize,
+		sampleMethod=sampleMethod,
+		sampleSize=sampleSize,
     	ncores=ncores,
-    	draws=draws,
+        ndraws=ndraws,
     	npop1=npop1,
     	npop2=npop2,
     	pop1Labels=sort(unique(XX1$id)),

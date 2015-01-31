@@ -1,22 +1,26 @@
-#' F-R test for one population comparison
+#' FR test for a single cell population pair comparison
 #'
-#' Compute a minimal spanning tree using package ade4 (optimized MST computation in C). Following
-#' Friedman and Rafsky (1979), the number of runs is standardized by substracting the expected number
-#' of runs and dividing the difference by the square root of estimated variance. Each FR statistic is dependent 
-#' on the topology of the minimal spanning tree of the given population comparision.
+#' Compute FR statistic for any two cell populations in flow cytometry data. Runtime of the FR test is 
+#' quadratic in the number of events (nodes) totaling a single population pair comprison. 
 #' 
-#' @param xx1 matrix of events (rows) by features (columns)
-#' @param xx2 matrix of events (rows) by features (columns)
+#' @param xx1 events of a single cell population, organized in a matrix or a data.frame of events (rows) by 
+#'          features (columns).
+#' @param xx2 events of a single cell population, organized in a matrix or a data.frame of events (rows) by 
+#'          features (columns).
 #' 
-#' @return ww FR statistic
-#' @return runs total number of within-group subtrees (or equivalently, total number of between-group edges plus 1)
-#' @return mu estimated mean of runs
-#' @return sigma2 estimated variance of runs
-#' @return pNorm p-values of the F-R statitic assuming large sample asymptotic normal assumption
+#' @return ww FR statistic.
+#' @return runs number of within-group subtrees (large number of runs indicate high degree of dissimilarity
+#'              between the two cell populations being compared.
+#' @return mu expected number of runs (when the two cell populations are similarly distributed).
+#' @return sigma2 variance of runs.
+#' @return pNorm p-values of the FR statitic assuming large sample asymptotic normal assumption.
+#'
 #' @examples
 #' ## see vignettes
 #'
 #' @name getFR
+#' 
+#' @author Chiaowen Joyce Hsiao \email{joyce.hsiao1@@gmail.com}
 #' 
 #' @export
 getFR <- function(xx1,xx2)
