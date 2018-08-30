@@ -25,8 +25,9 @@ You can track (and contribute to) the development of 'flowMap' at https://github
 
 1. To install the release version of 'flowMap':
    ```R
-   source("http://bioconductor.org/biocLite.R")
-   biocLite("flowMap")
+   if (!requireNamespace("BiocManager", quietly=TRUE))
+       install.packages("BiocManager")
+   BiocManager::install("flowMap")
    ```
 
 2. To install the development version of 'flowMap':
